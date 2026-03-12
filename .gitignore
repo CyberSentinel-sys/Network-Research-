@@ -1,0 +1,29 @@
+# Environment variables — NEVER commit secrets
+.env
+*.env
+.env.local
+.env.*.local
+
+# Scan output results
+NR/
+~/Desktop/NR/
+whois_res.txt
+nmap_res.txt
+*.txt
+
+# SSH keys
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

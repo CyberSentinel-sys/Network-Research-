@@ -1,84 +1,151 @@
-🛡️ Network Research Automation
-📌 Overview
-Network Research Automation is a fully automated reconnaissance and network scanning tool designed to run both locally and remotely via SSH. This project facilitates Whois lookups, Nmap scans, and anonymity verification while ensuring secure execution on a remote server.
+# **Network Research Automation**
 
-The system comprises two components:
+> Automated, Tor-anonymized network reconnaissance via SSH-orchestrated local/remote script execution.
 
-Local Script (combined.sh) – Executes pre-requisite checks, establishes a secure connection, and transfers tasks to the remote machine.
-Remote Script (NR_remote.sh) – Performs network intelligence tasks on the target, including Whois and Nmap scanning.
-🚀 Key Features
-✔ Automated Dependency Verification – Installs and verifies essential tools such as nmap, whois, tor, sshpass, and jq.
-✔ Anonymity Validation – Uses NIPE to check if the network traffic is routed through Tor.
-✔ Secure Remote Execution – Automates SSH-based execution of network reconnaissance tasks.
-✔ Comprehensive Scanning – Performs Whois lookups and Nmap scans for intelligence gathering.
-✔ Automated Data Retrieval – Collects and saves scan results locally for post-analysis.
+[![License: CC0](https://img.shields.io/badge/License-CC0%201.0-lightgrey.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Kali-blue.svg)]()
+[![Shell](https://img.shields.io/badge/Shell-Bash-green.svg)]()
+[![Anonymity](https://img.shields.io/badge/Anonymity-Tor%20%2F%20NIPE-purple.svg)]()
 
-🛠️ Installation
-1️⃣ Clone the Repository
-bash
-Copy code
-git clone https://github.com/yourusername/network-research-automation.git
-cd network-research-automation
-2️⃣ Install Dependencies
-Ensure your system has the required tools installed:
+---
 
-bash
-Copy code
-sudo apt update && sudo apt install -y sshpass curl cpanminus git nmap tor jq openssh-server
+## What It Does
 
+**Network Research Automation** is a two-script reconnaissance framework that orchestrates network intelligence gathering across local and remote machines over an encrypted SSH tunnel.
 
+**Key capabilities:**
 
-📖 Usage Guide:
-The Network Research Automation tool operates in a structured manner, orchestrating local and remote execution to streamline network reconnaissance. Below is a detailed breakdown of the usage workflow.
+- **Tor Anonymity Enforcement** — verifies all traffic is routed through the Tor network using NIPE before any scan begins
+- **SSH-based Remote Execution** — securely deploys and runs the reconnaissance script on a remote Linux host
+- **Whois Intelligence** — gathers domain/IP registration data, ownership, and registrar details
+- **Nmap Port Scanning** — identifies open ports, running services, and OS fingerprints on the target
+- **Automated Result Retrieval** — pulls all scan output back to the local machine for post-analysis
 
-1️⃣ Execute the Local Script
-Run the main automation script:
+The tool is built entirely in Bash, requiring no external runtimes — only standard Linux tools.
 
-bash
-Copy code
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Scripting | Bash (POSIX-compatible) |
+| Anonymity | [Tor](https://www.torproject.org/) + [NIPE](https://github.com/htrgouvea/nipe) |
+| Remote Execution | SSH / `sshpass` |
+| Reconnaissance | `nmap`, `whois` |
+| Data Handling | `jq`, `curl` |
+| OS | Linux (Ubuntu / Kali / Debian) |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[Operator - Local Machine] -->|Run combined.sh| B{Dependency & Anonymity Check}
+    B -->|NIPE: Tor NOT active| C[Abort - Protect Operator Identity]
+    B -->|NIPE: Tor ACTIVE| D[SSH into Remote Server]
+    D --> E[Transfer NR_remote.sh via SCP]
+    E --> F[Execute NR_remote.sh on Remote]
+
+    subgraph Remote Server
+        F --> G[Fetch: Public IP / Geo / Uptime]
+        G --> H[Whois Lookup on Target]
+        H --> I[Nmap Scan on Target]
+        I --> J[Write Results to ~/Desktop/NR/]
+    end
+
+    J -->|SCP Pull| K[Results Retrieved to Local Machine]
+    K --> L[whois_res.txt + nmap_res.txt]
+```
+
+---
+
+## Setup
+
+### Prerequisites
+
+**Local machine** (Ubuntu / Kali / Debian):
+
+```bash
+sudo apt update && sudo apt install -y sshpass curl cpanminus git nmap tor jq openssh-client
+```
+
+**Remote server** (any Linux):
+
+```bash
+sudo apt update && sudo apt install -y openssh-server nmap whois
+```
+
+### Install NIPE (Tor Anonymity Verification)
+
+```bash
+git clone https://github.com/htrgouvea/nipe && cd nipe
+sudo cpanm --installdeps .
+sudo perl nipe.pl install
+```
+
+### Configure Environment
+
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+```env
+# Target to scan
+TARGET_HOST=<domain or IP>
+
+# Remote server SSH credentials
+REMOTE_USER=<ssh_username>
+REMOTE_HOST=<remote_server_ip>
+# Use SSH key auth where possible — avoid storing plaintext passwords
+SSH_PASS=<ssh_password_or_leave_blank>
+```
+
+> **Note:** Prefer SSH key-based authentication over password auth. Never commit `.env` to version control.
+
+---
+
+## Run
+
+```bash
 bash combined.sh
-The script will prompt for the following details:
+```
 
-Target domain or IP address (e.g., 8.8.8.8)
-Remote server SSH username (e.g., kali)
-Remote server IP address (e.g., 192.168.1.100)
-SSH password (if not using SSH keys)
-2️⃣ Local Script Execution Flow
-Upon execution, the local script performs the following tasks:
+The script will interactively prompt for target and SSH details, verify Tor anonymity, deploy the remote script, execute scans, and retrieve results.
 
-Verifies anonymity by running NIPE to check Tor routing.
-Ensures SSH is active on the remote machine and starts it if necessary.
-Transfers the remote script (NR_remote.sh) securely to the target machine.
-Executes remote scanning on the specified domain/IP.
-3️⃣ Remote Script Execution Flow
-Once deployed on the remote server, the remote script:
+**Output files saved to `~/Desktop/NR/`:**
 
-Fetches system information including:
-Public IP address
-Geographic location
-Server uptime
-Executes reconnaissance scans:
-Whois Lookup: Gathers domain/IP registration details.
-Nmap Scan: Identifies open ports and running services.
-Stores results in /home/kali/Desktop/NR/ for retrieval.
-4️⃣ Fetching Results
-After execution, the local script automatically retrieves the scan results and stores them in:
+| File | Contents |
+|---|---|
+| `whois_res.txt` | Whois domain/IP registration data |
+| `nmap_res.txt` | Nmap port scan report |
 
-bash
-Copy code
-~/Desktop/NR/
-The output includes:
+---
 
-whois_res.txt – Whois lookup details.
-nmap_res.txt – Nmap scan report.
-🔧 System Requirements
-Local Machine
-OS: Linux (Ubuntu/Kali/Debian-based)
-Required Tools: bash, sshpass, curl, cpanminus, git, nmap, tor, jq
-Internet connection (for anonymity checks & Whois lookups)
-Remote Server
-OS: Linux-based
-Required Tools: bash, openssh-server, nmap, whois
-SSH access enabled
-⚠️ Legal Disclaimer
-This tool is designed for ethical security research and educational purposes only. Unauthorized network scanning or reconnaissance without proper authorization is illegal. Users must ensure compliance with applicable laws and obtain explicit permission before conducting any network assessments.
+## Project Structure
+
+```
+network-research-automation/
+├── combined.sh          # Local orchestration script
+├── NR_remote.sh         # Remote reconnaissance script
+├── .env.example         # Environment variable template
+├── .gitignore           # Prevents secrets from being committed
+└── README.md            # This file
+```
+
+---
+
+## Legal Disclaimer
+
+This tool is designed **strictly for authorized security research, penetration testing engagements, and educational purposes**. Unauthorized network scanning or reconnaissance against systems you do not own or have explicit written permission to test is **illegal** under the Computer Fraud and Abuse Act (CFAA), the UK Computer Misuse Act, and equivalent legislation worldwide.
+
+**Always obtain written authorization before scanning any network or system.**
+
+---
+
+## License
+
+[CC0 1.0 Universal](LICENSE) — Public Domain Dedication.
